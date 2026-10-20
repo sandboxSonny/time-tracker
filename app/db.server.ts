@@ -25,7 +25,24 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
   CREATE INDEX IF NOT EXISTS entries_date ON entries(entry_date);
+  CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `);
+
+export function getSetting(key: string): string | null {
+  return (
+    (db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as { value: string } | undefined)?.value ?? null
+  );
+}
+
+export function setSetting(key: string, value: string) {
+  db.prepare(
+    "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+  ).run(key, value);
+}
+
+export function deleteSetting(key: string) {
+  db.prepare("DELETE FROM settings WHERE key = ?").run(key);
+}
 
 export type Client = { id: number; name: string; archived: number; entry_count?: number };
 export type Entry = {
@@ -62,6 +79,14 @@ export function recentClientIds(limit = 4): number[] {
 
 export function addClient(name: string) {
   db.prepare("INSERT INTO clients (name) VALUES (?)").run(name);
+}
+
+/** Adds any names that don't already exist (case-insensitive). Existing and archived clients are left untouched. */
+export function importClients(names: string[]): { added: number; existing: number } {
+  const insert = db.prepare("INSERT OR IGNORE INTO clients (name) VALUES (?)");
+  const run = db.transaction((list: string[]) => list.reduce((n, name) => n + insert.run(name).changes, 0));
+  const added = run(names);
+  return { added, existing: names.length - added };
 }
 
 export function setClientArchived(id: number, archived: boolean) {

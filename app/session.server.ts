@@ -6,6 +6,9 @@ if (!import.meta.env.DEV && (!secret || secret.length < 32)) {
   throw new Error("SESSION_SECRET must be set to a random string of at least 32 characters");
 }
 
+/** Shared with other signed cookies (e.g. the Zoho OAuth state). */
+export const cookieSecret = secret ?? "dev-only-secret";
+
 const storage = createCookieSessionStorage({
   cookie: {
     name: "__session",
@@ -13,7 +16,7 @@ const storage = createCookieSessionStorage({
     sameSite: "lax",
     path: "/",
     secure: process.env.NODE_ENV === "production",
-    secrets: [secret ?? "dev-only-secret"],
+    secrets: [cookieSecret],
     maxAge: 60 * 60 * 24 * 30,
   },
 });

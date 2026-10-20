@@ -7,6 +7,8 @@ export default [
     index("routes/entries.tsx"),
     route("clients", "routes/clients.tsx"),
     route("export.csv", "routes/export.ts"),
+    route("zoho/connect", "routes/zoho.connect.ts"),
+    route("zoho/callback", "routes/zoho.callback.ts"),
     route("logout", "routes/logout.ts"),
   ]),
 ] satisfies RouteConfig;
