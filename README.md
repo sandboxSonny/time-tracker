@@ -88,3 +88,9 @@ public/              Logo, icons, web manifest
 - Auth is a single shared password with a signed cookie (30 days). Login is rate-limited in memory, so the counters reset on restart.
 - Back up the SQLite file occasionally (Railway volume backups, or the CSV export).
 - Time is stored as whole minutes. Entries can be deleted but not edited.
+
+## License
+
+The source code is released under the [MIT License](LICENSE).
+
+**Branding is not open source.** The Adams Gas Engineers name, logo, favicon and icons (everything in `public/` apart from the manifest, plus the branding text in the app) are proprietary to Adams Gas Engineers and may only be used with their authorisation. See [BRANDING.md](BRANDING.md). If you reuse this project, replace them with your own.
