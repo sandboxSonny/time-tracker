@@ -87,6 +87,7 @@ public/              Logo, icons, web manifest
 
 - Auth is a single shared password with a signed cookie (30 days). Login is rate-limited in memory, so the counters reset on restart.
 - Back up the SQLite file occasionally (Railway volume backups, or the CSV export).
+- The public host must be known at **build** time (`APP_URL` or Railway's `RAILWAY_PUBLIC_DOMAIN`, read in `react-router.config.ts`). Behind Railway's proxy the server sees `http://`, so without it React Router's CSRF origin check rejects every form POST with a 400. If you add or change the domain, redeploy so it rebuilds.
 - Time is stored as whole minutes. Entries can be deleted but not edited.
 
 ## License
