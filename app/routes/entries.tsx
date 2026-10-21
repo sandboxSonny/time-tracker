@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Form, Link, useNavigate, useSubmit } from "react-router";
+import { Form, Link, useNavigate } from "react-router";
 import type { Route } from "./+types/entries";
+import { MonthField } from "~/components/MonthField";
 import { addEntry, deleteEntry, listClients, listEntries } from "~/db.server";
 import { requireAuth } from "~/session.server";
 import { formatDuration, parseDuration } from "~/time";
@@ -204,7 +205,7 @@ function ClientFilter({
 
       <dialog ref={dialog} className="modal modal-bottom lg:hidden">
         <div
-          className="modal-box flex max-h-[80vh] w-full max-w-lg flex-col gap-3 rounded-t-3xl p-5"
+          className="modal-box flex max-h-[80vh] w-full max-w-lg justify-self-center flex-col gap-3 rounded-t-3xl p-5"
           style={{
             paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)",
           }}
@@ -294,7 +295,7 @@ function DeleteButton({ id }: { id: number }) {
 
 export default function Entries({ loaderData }: Route.ComponentProps) {
   const { clients, days, totals, total, count, filter } = loaderData;
-  const submit = useSubmit();
+  const navigate = useNavigate();
   const chip = (id: number) => {
     const p = new URLSearchParams();
     if (id) p.set("client", String(id));
@@ -332,13 +333,15 @@ export default function Entries({ loaderData }: Route.ComponentProps) {
 
       <div className="flex items-center gap-2">
         <ClientFilter clients={clients} current={filter.client} href={chip} />
-        <Form method="get" onChange={(e) => submit(e.currentTarget)} className="flex items-center gap-2">
-          {filter.client ? <input type="hidden" name="client" value={filter.client} /> : null}
-          <input
-            type="month"
-            name="month"
-            defaultValue={filter.month}
-            className="input input-sm min-w-0 flex-1 lg:w-48 lg:flex-none"
+        <Form method="get" className="flex min-w-0 flex-1 items-center gap-2">
+          <MonthField
+            value={filter.month}
+            onChange={(month) => {
+              const p = new URLSearchParams();
+              if (filter.client) p.set("client", String(filter.client));
+              if (month) p.set("month", month);
+              navigate(`/?${p}`);
+            }}
           />
           {filter.month && (
             <Link to={filter.client ? `/?client=${filter.client}` : "/"} className="btn btn-sm btn-ghost">

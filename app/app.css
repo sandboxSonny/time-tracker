@@ -13,3 +13,20 @@ select,
 textarea {
   font-size: 16px !important;
 }
+
+/* react-day-picker themed with daisyUI colours, sized for touch */
+.day-picker {
+  --rdp-accent-color: var(--color-primary);
+  --rdp-accent-background-color: var(--color-base-300);
+  --rdp-day-height: 42px;
+  --rdp-day-width: 42px;
+  --rdp-day_button-height: 40px;
+  --rdp-day_button-width: 40px;
+  --rdp-nav_button-height: 2.75rem;
+  --rdp-nav_button-width: 2.75rem;
+}
+.day-picker .rdp-selected .rdp-day_button {
+  background: var(--color-primary);
+  color: var(--color-primary-content);
+  border-color: var(--color-primary);
+}

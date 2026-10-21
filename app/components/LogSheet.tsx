@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { Link, useFetcher } from "react-router";
+import { DateField } from "~/components/DateField";
 import { formatDuration, parseDuration } from "~/time";
 
 type ClientOption = { id: number; name: string };
@@ -7,18 +8,6 @@ type ClientOption = { id: number; name: string };
 const QUICK = ["15m", "30m", "45m", "1h", "1h30m", "2h", "3h", "4h"];
 const TITLES = ["Which client?", "What was it for?", "How long?"];
 const localToday = () => new Date().toLocaleDateString("en-CA");
-
-function useWide() {
-  const [wide, setWide] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const update = () => setWide(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
-  return wide;
-}
 
 export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent: number[] }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -36,11 +25,10 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
 
-  const wide = useWide();
   const minutes = parseDuration(duration);
   const client = clients.find((c) => c.id === clientId);
   const checks = [!!client, description.trim().length > 0, !!minutes && !!date];
-  const valid = wide ? checks.every(Boolean) : checks[step];
+  const valid = checks[step];
   const searching = query.trim() !== "";
   const recentClients = recent.flatMap((id) => clients.find((c) => c.id === id) ?? []);
   const ordered = [...recentClients, ...clients.filter((c) => !recent.includes(c.id))];
@@ -73,12 +61,12 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
 
   // Focus the field once the slide animation has finished (focusing mid-slide makes the browser scroll the track).
   useEffect(() => {
-    if (wide || !dialog.current?.open) return;
+    if (!dialog.current?.open) return;
     const t = setTimeout(() => [null, descRef.current, durRef.current][step]?.focus(), 320);
     return () => clearTimeout(t);
-  }, [step, wide]);
+  }, [step]);
 
-  const pane = (i: number) => ({ className: "w-1/3 shrink-0 px-5 pb-2 lg:w-full lg:pb-4", inert: !wide && step !== i });
+  const pane = (i: number) => ({ className: "w-1/3 shrink-0 px-5 pb-2", inert: step !== i });
 
   return (
     <>
@@ -104,12 +92,12 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
         <fetcher.Form
           method="post"
           action="/?index"
-          className="modal-box w-full max-w-lg overflow-hidden rounded-t-3xl p-0 lg:rounded-2xl"
+          className="modal-box w-full max-w-lg justify-self-center overflow-hidden rounded-t-3xl p-0 lg:rounded-2xl"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           onSubmit={(e) => {
-            if ((!wide && step < 2) || !valid) {
+            if (step < 2 || !valid) {
               e.preventDefault();
-              if (valid && !wide) setStep(step + 1);
+              if (valid) setStep(step + 1);
             }
           }}
         >
@@ -122,7 +110,7 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
           <div className="flex items-center gap-2 px-3 pt-3">
             <button
               type="button"
-              className={`btn btn-ghost btn-circle btn-sm lg:hidden ${step === 0 ? "invisible" : ""}`}
+              className={`btn btn-ghost btn-circle btn-sm ${step === 0 ? "invisible" : ""}`}
               onClick={() => setStep(step - 1)}
               aria-label="Back"
             >
@@ -138,9 +126,7 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
                 <path d="M15 18l-6-6 6-6" />
               </svg>
             </button>
-            <h2 className="flex-1 text-center text-lg font-semibold lg:px-2 lg:text-left lg:text-xl">
-              {wide ? "Log time" : TITLES[step]}
-            </h2>
+            <h2 className="flex-1 text-center text-lg font-semibold">{TITLES[step]}</h2>
             <button
               type="button"
               className="btn btn-ghost btn-circle btn-sm"
@@ -160,7 +146,7 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
             </button>
           </div>
 
-          <div className="flex gap-1.5 px-5 py-3 lg:hidden" aria-hidden>
+          <div className="flex gap-1.5 px-5 py-3" aria-hidden>
             {TITLES.map((_, i) => (
               <div
                 key={i}
@@ -171,8 +157,8 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
 
           <div className="overflow-hidden">
             <div
-              className="flex items-start transition-transform duration-300 ease-out lg:block lg:pt-3"
-              style={wide ? undefined : { width: "300%", transform: `translateX(-${(step * 100) / 3}%)` }}
+              className="flex items-start transition-transform duration-300 ease-out"
+              style={{ width: "300%", transform: `translateX(-${(step * 100) / 3}%)` }}
             >
               <div {...pane(0)}>
                 {clients.length > 4 && (
@@ -185,7 +171,7 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
                   />
                 )}
                 {clients.length ? (
-                  <div className="flex max-h-[45vh] flex-col gap-2 overflow-y-auto lg:grid lg:max-h-48 lg:grid-cols-2">
+                  <div className="flex max-h-[45vh] flex-col gap-2 overflow-y-auto lg:grid lg:max-h-72 lg:grid-cols-2">
                     {shownClients.map((c, i) => (
                       <Fragment key={c.id}>
                         {showSections && i === 0 && (
@@ -198,9 +184,9 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
                           type="button"
                           onClick={() => {
                             setClientId(c.id);
-                            if (!wide) setStep(1);
+                            setStep(1);
                           }}
-                          className={`btn btn-lg justify-start lg:btn-md ${c.id === clientId ? "btn-primary" : "btn-soft"}`}
+                          className={`btn btn-lg justify-start ${c.id === clientId ? "btn-primary" : "btn-soft"}`}
                         >
                           {c.name}
                         </button>
@@ -224,15 +210,15 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
               </div>
 
               <div {...pane(1)}>
-                <p className="mb-2 text-sm opacity-60 lg:hidden">{client?.name}</p>
+                <p className="mb-2 text-sm opacity-60">{client?.name}</p>
                 <input
                   ref={descRef}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   maxLength={200}
                   enterKeyHint="next"
-                  placeholder="e.g. Fixed login bug"
-                  className="input input-lg w-full lg:input-md"
+                  placeholder="e.g. Replaced boiler pressure valve"
+                  className="input input-lg w-full"
                 />
               </div>
 
@@ -257,24 +243,17 @@ export function LogSheet({ clients, recent }: { clients: ClientOption[]; recent:
                   placeholder="Or type: 1h20m, 1:30, 1.5"
                   className="input mt-3 w-full"
                 />
-                <label className="mt-3 flex items-center justify-between gap-3 text-sm">
-                  <span className="opacity-60">Date</span>
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input w-auto" />
-                </label>
+                <DateField value={date} onChange={setDate} />
                 {error && <p className="mt-2 text-sm text-error">{error}</p>}
               </div>
             </div>
           </div>
 
-          <div className="px-5 pb-5 pt-2 lg:flow-root">
-            <button
-              type="submit"
-              className="btn btn-primary btn-lg w-full lg:btn-md lg:float-right lg:w-auto"
-              disabled={!valid || saving}
-            >
+          <div className="px-5 pb-5 pt-2">
+            <button type="submit" className="btn btn-primary btn-lg w-full" disabled={!valid || saving}>
               {saving ? (
                 <span className="loading loading-spinner" />
-              ) : !wide && step < 2 ? (
+              ) : step < 2 ? (
                 "Next"
               ) : (
                 `Log ${minutes ? formatDuration(minutes) : "time"}`
