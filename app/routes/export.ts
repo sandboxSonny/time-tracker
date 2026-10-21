@@ -14,11 +14,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   const month = url.searchParams.get("month") ?? "";
   const entries = listEntries({
     clientId: Number(url.searchParams.get("client")) || undefined,
+    location: url.searchParams.get("location") ?? undefined,
     month: /^\d{4}-\d{2}$/.test(month) ? month : undefined,
   });
   const rows = [
-    ["Date", "Client", "Description", "Hours"].map(csv).join(","),
-    ...entries.map((e) => [e.entry_date, e.client_name, e.description, (e.minutes / 60).toFixed(2)].map(csv).join(",")),
+    ["Date", "Client", "Location", "Description", "Hours"].map(csv).join(","),
+    ...entries.map((e) =>
+      [e.entry_date, e.client_name, e.location, e.description, (e.minutes / 60).toFixed(2)].map(csv).join(","),
+    ),
   ];
   return new Response(rows.join("\n"), {
     headers: {

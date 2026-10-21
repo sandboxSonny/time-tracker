@@ -1,12 +1,16 @@
 import { Form, NavLink, Outlet } from "react-router";
 import type { Route } from "./+types/layout";
-import { listClients, recentClientIds } from "~/db.server";
+import { listClients, listLocations, recentClientIds } from "~/db.server";
 import { requireAuth } from "~/session.server";
 import { LogSheet } from "~/components/LogSheet";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  return { clients: listClients().map(({ id, name }) => ({ id, name })), recent: recentClientIds() };
+  return {
+    clients: listClients().map(({ id, name }) => ({ id, name })),
+    recent: recentClientIds(),
+    locations: listLocations(),
+  };
 }
 
 const icon = {
@@ -68,7 +72,7 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
         </main>
       </div>
 
-      <LogSheet clients={loaderData.clients} recent={loaderData.recent} />
+      <LogSheet clients={loaderData.clients} recent={loaderData.recent} locations={loaderData.locations} />
 
       <nav className="dock z-20 bg-base-100 lg:hidden">
         <NavLink to="/" end className={dock}>

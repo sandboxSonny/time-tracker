@@ -28,6 +28,10 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `);
 
+if (!(db.pragma("table_info(entries)") as { name: string }[]).some((c) => c.name === "location")) {
+  db.exec("ALTER TABLE entries ADD COLUMN location TEXT NOT NULL DEFAULT ''");
+}
+
 export function getSetting(key: string): string | null {
   return (
     (db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as { value: string } | undefined)?.value ?? null
@@ -51,6 +55,7 @@ export type Entry = {
   client_name: string;
   entry_date: string;
   description: string;
+  location: string;
   minutes: number;
 };
 
@@ -77,6 +82,18 @@ export function recentClientIds(limit = 4): number[] {
   ).map((r) => r.id);
 }
 
+/** Distinct job locations already used, most recently used first. */
+export function listLocations(): string[] {
+  return (
+    db
+      .prepare(
+        `SELECT location FROM entries WHERE location <> ''
+         GROUP BY location COLLATE NOCASE ORDER BY MAX(id) DESC`,
+      )
+      .all() as { location: string }[]
+  ).map((r) => r.location);
+}
+
 export function addClient(name: string) {
   db.prepare("INSERT INTO clients (name) VALUES (?)").run(name);
 }
@@ -97,7 +114,7 @@ export function deleteClientIfUnused(id: number) {
   db.prepare("DELETE FROM clients WHERE id = ? AND NOT EXISTS (SELECT 1 FROM entries WHERE client_id = ?)").run(id, id);
 }
 
-export function listEntries(filter: { clientId?: number; month?: string }): Entry[] {
+export function listEntries(filter: { clientId?: number; month?: string; location?: string }): Entry[] {
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (filter.clientId) {
@@ -108,9 +125,13 @@ export function listEntries(filter: { clientId?: number; month?: string }): Entr
     where.push("substr(e.entry_date, 1, 7) = ?");
     params.push(filter.month);
   }
+  if (filter.location) {
+    where.push("e.location = ? COLLATE NOCASE");
+    params.push(filter.location);
+  }
   return db
     .prepare(
-      `SELECT e.id, e.client_id, c.name AS client_name, e.entry_date, e.description, e.minutes
+      `SELECT e.id, e.client_id, c.name AS client_name, e.entry_date, e.description, e.location, e.minutes
        FROM entries e JOIN clients c ON c.id = e.client_id
        ${where.length ? "WHERE " + where.join(" AND ") : ""}
        ORDER BY e.entry_date DESC, e.id DESC`,
@@ -118,11 +139,18 @@ export function listEntries(filter: { clientId?: number; month?: string }): Entr
     .all(...params) as Entry[];
 }
 
-export function addEntry(e: { clientId: number; date: string; description: string; minutes: number }) {
-  db.prepare("INSERT INTO entries (client_id, entry_date, description, minutes) VALUES (?, ?, ?, ?)").run(
+export function addEntry(e: {
+  clientId: number;
+  date: string;
+  description: string;
+  location: string;
+  minutes: number;
+}) {
+  db.prepare("INSERT INTO entries (client_id, entry_date, description, location, minutes) VALUES (?, ?, ?, ?, ?)").run(
     e.clientId,
     e.date,
     e.description,
+    e.location,
     e.minutes,
   );
 }
