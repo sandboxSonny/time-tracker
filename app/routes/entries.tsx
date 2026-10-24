@@ -484,8 +484,8 @@ export default function Entries({ loaderData }: Route.ComponentProps) {
             <div key={e.id} className="card bg-base-100 shadow-sm">
               <div className="card-body flex-row items-center gap-3 p-4">
                 <div className="min-w-0 flex-1">
-                  <p className="break-words font-medium">{e.description}</p>
-                  <p className="text-sm opacity-60">{[e.client_name, e.location].filter(Boolean).join(" · ")}</p>
+                  <p className="break-words font-medium">{e.client_name}</p>
+                  <p className="text-sm opacity-60">{[e.location, e.description].filter(Boolean).join(" · ")}</p>
                 </div>
                 <span className="badge badge-primary badge-soft badge-lg whitespace-nowrap">
                   {formatDuration(e.minutes)}
