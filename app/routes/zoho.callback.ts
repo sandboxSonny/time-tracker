@@ -16,10 +16,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (params.get("error")) return fail("denied");
   const state = params.get("state");
   const code = params.get("code");
+  const location = params.get("location");
   if (!expected || !state || !code || !same(expected, state)) return fail("state");
 
   try {
-    await connectWithCode(request, code);
+    await connectWithCode(code, location ?? undefined);
   } catch (e) {
     console.error("Zoho connect failed:", e);
     return fail("failed");

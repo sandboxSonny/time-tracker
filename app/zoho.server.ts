@@ -34,7 +34,7 @@ export const stateCookie = createCookie("__zoho_state", {
 
 /** Names of the required Zoho environment variables that aren't set. Zoho works once this is empty. */
 export function missingZohoConfig() {
-  return ["ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET"].filter((k) => !process.env[k]);
+  return ["ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "APP_URL"].filter((k) => !process.env[k]);
 }
 
 export function isZohoConfigured() {
@@ -46,7 +46,7 @@ export function isZohoConnected() {
 }
 
 function urls() {
-  const dc = (process.env.ZOHO_DC ?? "com") as DataCentre;
+  const dc = (getSetting("zoho_dc") ?? process.env.ZOHO_DC ?? "com") as DataCentre;
   if (!(dc in DATA_CENTRES)) throw new ZohoError(`ZOHO_DC must be one of: ${Object.keys(DATA_CENTRES).join(", ")}.`);
   return DATA_CENTRES[dc];
 }
@@ -57,19 +57,20 @@ function credentials() {
   return { id, secret };
 }
 
-/** APP_URL must be set in production (the proxy hides the real https origin from the server). */
-function redirectUri(request: Request) {
-  const base = process.env.APP_URL?.replace(/\/$/, "") ?? new URL(request.url).origin;
-  return `${base}/zoho/callback`;
+/** APP_URL is required (checked by missingZohoConfig): the reverse proxy hides the real https origin from the server. */
+function redirectUri() {
+  const appUrl = process.env.APP_URL;
+  if (!appUrl) throw new ZohoError("Zoho Books isn't configured.");
+  return `${appUrl.replace(/\/$/, "")}/zoho/callback`;
 }
 
-export function buildAuthUrl(request: Request, state: string) {
+export function buildAuthUrl(state: string) {
   const url = new URL(`${urls().accounts}/oauth/v2/auth`);
   url.search = new URLSearchParams({
     response_type: "code",
     client_id: credentials().id,
     scope: SCOPE,
-    redirect_uri: redirectUri(request),
+    redirect_uri: redirectUri(),
     access_type: "offline", // needed to receive a refresh token
     prompt: "consent",
     state,
@@ -99,8 +100,9 @@ async function tokenRequest(params: Record<string, string>): Promise<TokenRespon
 }
 
 /** Finishes the OAuth flow: swaps the one-time code for tokens and remembers the refresh token. */
-export async function connectWithCode(request: Request, code: string) {
-  const body = await tokenRequest({ grant_type: "authorization_code", code, redirect_uri: redirectUri(request) });
+export async function connectWithCode(code: string, location?: string) {
+  if (location) setSetting("zoho_dc", location);
+  const body = await tokenRequest({ grant_type: "authorization_code", code, redirect_uri: redirectUri() });
   if (!body.refresh_token) throw new ZohoError("Zoho didn't return a refresh token. Try connecting again.");
   setSetting("zoho_refresh_token", body.refresh_token);
   deleteSetting("zoho_organization_id");
@@ -110,6 +112,7 @@ export async function disconnectZoho() {
   const token = getSetting("zoho_refresh_token");
   deleteSetting("zoho_refresh_token");
   deleteSetting("zoho_organization_id");
+  deleteSetting("zoho_dc");
   cached = null;
   if (token) {
     // Best effort: tell Zoho to invalidate it too.
