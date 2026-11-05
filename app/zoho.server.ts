@@ -1,12 +1,13 @@
 // Zoho Books integration: OAuth (authorization code flow) + pulling customer names. Read-only.
-// Requires a "Server-based Application" client in the Zoho API Console with the scope ZohoBooks.contacts.READ
+// Requires a "Server-based Application" client in the Zoho API Console with the scopes
+// ZohoBooks.contacts.READ and ZohoBooks.organizations.READ
 // and the redirect URI <APP_URL>/zoho/callback.
 
 import { createCookie } from "react-router";
 import { deleteSetting, getSetting, setSetting } from "~/db.server";
 import { cookieSecret } from "~/session.server";
 
-const SCOPE = "ZohoBooks.contacts.READ";
+const SCOPE = "ZohoBooks.contacts.READ,ZohoBooks.organizations.READ";
 
 const DATA_CENTRES = {
   com: { accounts: "https://accounts.zoho.com", api: "https://www.zohoapis.com" },
